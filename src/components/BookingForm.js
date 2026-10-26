@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import "./BookingForm.css";
 
 export default function BookingForm({
   availableTimes,
@@ -15,8 +16,9 @@ export default function BookingForm({
 
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
-  const [guests, setGuests] = useState("1");
-  const [occasion, setOccasion] = useState("Birthday");
+  const [guests, setGuests] = useState("2");
+  const [occasion, setOccasion] = useState("");
+  const [submitted, setSubmitted] = useState(false);
 
   const isDateValid = date !== "" && date >= todayString;
   const isTimeValid = availableTimes.includes(time);
@@ -33,6 +35,25 @@ export default function BookingForm({
     isGuestsValid &&
     isOccasionValid;
 
+  const errors = {
+    date: !date
+      ? "Please select a reservation date."
+      : !isDateValid
+        ? "Choose today or a future date."
+        : "",
+    time: !time
+      ? "Please select an available time."
+      : !isTimeValid
+        ? "Choose a time available for the selected date."
+        : "",
+    guests: !guests
+      ? "Please enter the number of guests."
+      : !isGuestsValid
+        ? "Choose between 1 and 10 guests."
+        : "",
+    occasion: !isOccasionValid ? "Please select an occasion." : "",
+  };
+
   function handleDateChange(event) {
     const selectedDate = event.target.value;
 
@@ -47,81 +68,195 @@ export default function BookingForm({
 
   function handleSubmit(event) {
     event.preventDefault();
+    setSubmitted(true);
 
     if (!isFormValid) {
       return;
     }
 
-    const formData = {
+    submitForm({
       date,
       time,
       guests: Number(guests),
       occasion,
-    };
-
-    submitForm(formData);
+    });
   }
 
   return (
-    <form className="booking-form" onSubmit={handleSubmit}>
-      <label htmlFor="res-date">Choose date</label>
-      <input
-        type="date"
-        id="res-date"
-        value={date}
-        min={todayString}
-        onChange={handleDateChange}
-        required
-      />
+    <form
+      className="booking-form"
+      onSubmit={handleSubmit}
+      noValidate
+    >
+      <div className="booking-form__row">
+        <div className="booking-form__field">
+          <label htmlFor="res-date">Date</label>
+          <input
+            type="date"
+            id="res-date"
+            value={date}
+            min={todayString}
+            onChange={handleDateChange}
+            required
+            aria-invalid={submitted && Boolean(errors.date)}
+            aria-describedby={submitted && errors.date ? "date-error" : undefined}
+            className={
+              submitted && errors.date
+                ? "booking-form__control booking-form__control--error"
+                : "booking-form__control"
+            }
+          />
+          {submitted && errors.date && (
+            <p className="booking-form__error" id="date-error" role="alert">
+              {errors.date}
+            </p>
+          )}
+        </div>
 
-      <label htmlFor="res-time">Choose time</label>
-      <select
-        id="res-time"
-        value={time}
-        onChange={(event) => setTime(event.target.value)}
-        required
-      >
-        <option value="" disabled>
-          Select a time
-        </option>
-        {availableTimes.map((availableTime) => (
-          <option key={availableTime} value={availableTime}>
-            {availableTime}
-          </option>
-        ))}
-      </select>
+        <div className="booking-form__field">
+          <label htmlFor="res-time">Time</label>
+          <select
+            id="res-time"
+            value={time}
+            onChange={(event) => setTime(event.target.value)}
+            required
+            aria-invalid={submitted && Boolean(errors.time)}
+            aria-describedby={submitted && errors.time ? "time-error" : undefined}
+            className={
+              submitted && errors.time
+                ? "booking-form__control booking-form__control--error"
+                : "booking-form__control"
+            }
+          >
+            <option value="" disabled>
+              Select time
+            </option>
+            {availableTimes.map((availableTime) => (
+              <option key={availableTime} value={availableTime}>
+                {availableTime}
+              </option>
+            ))}
+          </select>
+          {submitted && errors.time && (
+            <p className="booking-form__error" id="time-error" role="alert">
+              {errors.time}
+            </p>
+          )}
+        </div>
+      </div>
 
-      <label htmlFor="guests">Number of guests</label>
-      <input
-        type="number"
-        id="guests"
-        min="1"
-        max="10"
-        step="1"
-        value={guests}
-        onChange={(event) => setGuests(event.target.value)}
-        required
-      />
+      <div className="booking-form__row">
+        <div className="booking-form__field">
+  <label id="guests-label">Guests</label>
 
-      <label htmlFor="occasion">Occasion</label>
-      <select
-        id="occasion"
-        value={occasion}
-        onChange={(event) => setOccasion(event.target.value)}
-        required
-      >
-        <option value="Birthday">Birthday</option>
-        <option value="Anniversary">Anniversary</option>
-      </select>
+  <div
+    className={`booking-form__stepper ${
+      submitted && errors.guests
+        ? "booking-form__stepper--error"
+        : ""
+    }`}
+  >
+    <button
+      type="button"
+      className="booking-form__stepper-button"
+      onClick={() =>
+        setGuests((current) =>
+          String(Math.max(1, Number(current) - 1))
+        )
+      }
+      disabled={Number(guests) <= 1}
+      aria-label="Decrease number of guests"
+    >
+      <span aria-hidden="true">−</span>
+    </button>
+
+    <div
+  className="booking-form__stepper-value"
+  aria-live="polite"
+  aria-labelledby="guests-label"
+  aria-describedby={
+    submitted && errors.guests ? "guests-error" : undefined
+  }
+>
+      <span className="booking-form__stepper-number">{guests}</span>
+      <span className="booking-form__stepper-unit">
+        {Number(guests) === 1 ? "guest" : "guests"}
+      </span>
+    </div>
+
+    <button
+      type="button"
+      className="booking-form__stepper-button"
+      onClick={() =>
+        setGuests((current) =>
+          String(Math.min(10, Number(current) + 1))
+        )
+      }
+      disabled={Number(guests) >= 10}
+      aria-label="Increase number of guests"
+    >
+      <span aria-hidden="true">+</span>
+    </button>
+  </div>
+
+  {submitted && errors.guests && (
+    <p className="booking-form__error" id="guests-error" role="alert">
+      {errors.guests}
+    </p>
+  )}
+</div>
+
+        <fieldset className="booking-form__field booking-form__occasion">
+          <legend>Occasion</legend>
+          <div
+            className="booking-form__toggle-group"
+            role="radiogroup"
+            aria-label="Choose an occasion"
+            aria-describedby={
+              submitted && errors.occasion ? "occasion-error" : undefined
+            }
+          >
+            {["Birthday", "Anniversary"].map((option) => (
+              <label
+                key={option}
+                className={
+                  occasion === option
+                    ? "booking-form__toggle booking-form__toggle--selected"
+                    : "booking-form__toggle"
+                }
+              >
+                <input
+                  type="radio"
+                  name="occasion"
+                  value={option}
+                  checked={occasion === option}
+                  onChange={(event) => setOccasion(event.target.value)}
+                  required
+                />
+                <span>{option}</span>
+              </label>
+            ))}
+          </div>
+          {submitted && errors.occasion && (
+            <p className="booking-form__error" id="occasion-error" role="alert">
+              {errors.occasion}
+            </p>
+          )}
+        </fieldset>
+      </div>
 
       <button
-  type="submit"
-  className="button-primary"
-  aria-label="Make your reservation"
-  disabled={!isFormValid}
->
-  Make Your reservation
-</button>
+        type="submit"
+        className={
+          isFormValid
+            ? "booking-form__submit"
+            : "booking-form__submit booking-form__submit--disabled"
+        }
+        aria-disabled={!isFormValid}
+        aria-label="On Click"
+      >
+        Make Your reservation
+      </button>
     </form>
   );
 }

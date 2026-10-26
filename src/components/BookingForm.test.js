@@ -31,129 +31,173 @@ function renderBookingForm() {
   return { dispatch, submitForm };
 }
 
-test("applies HTML5 validation attributes to the form fields", () => {
+function fillValidForm() {
+  fireEvent.change(screen.getByLabelText(/date/i), {
+    target: { value: getFutureDate() },
+  });
+
+  fireEvent.change(screen.getByLabelText(/time/i), {
+    target: { value: "18:00" },
+  });
+
+  fireEvent.change(screen.getByLabelText(/guests/i), {
+    target: { value: "4" },
+  });
+
+  fireEvent.click(screen.getByLabelText(/anniversary/i));
+}
+
+test("applies HTML5 validation attributes to form fields", () => {
   renderBookingForm();
 
-  const dateInput = screen.getByLabelText(/choose date/i);
-  const timeSelect = screen.getByLabelText(/choose time/i);
-  const guestsInput = screen.getByLabelText(/number of guests/i);
-  const occasionSelect = screen.getByLabelText(/occasion/i);
+  const dateInput = screen.getByLabelText(/date/i);
+  const timeSelect = screen.getByLabelText(/time/i);
+  const guestsInput = screen.getByLabelText(/guests/i);
+  const birthdayRadio = screen.getByLabelText(/birthday/i);
+  const anniversaryRadio = screen.getByLabelText(/anniversary/i);
 
-  expect(dateInput).toBeRequired();
   expect(dateInput).toHaveAttribute("type", "date");
+  expect(dateInput).toBeRequired();
   expect(dateInput).toHaveAttribute("min");
 
   expect(timeSelect).toBeRequired();
 
-  expect(guestsInput).toBeRequired();
+  expect(guestsInput).toHaveAttribute("type", "number");
   expect(guestsInput).toHaveAttribute("min", "1");
   expect(guestsInput).toHaveAttribute("max", "10");
   expect(guestsInput).toHaveAttribute("step", "1");
+  expect(guestsInput).toBeRequired();
 
-  expect(occasionSelect).toBeRequired();
+  expect(birthdayRadio).toHaveAttribute("type", "radio");
+  expect(anniversaryRadio).toHaveAttribute("type", "radio");
+  expect(birthdayRadio).toHaveAttribute("name", "occasion");
+  expect(anniversaryRadio).toHaveAttribute("name", "occasion");
+  expect(birthdayRadio).toBeRequired();
+  expect(anniversaryRadio).toBeRequired();
 });
 
-test("disables the submit button when the form is invalid", () => {
+test("shows validation errors after submitting an empty form", () => {
   renderBookingForm();
 
-  const submitButton = screen.getByRole("button", {
-    name: /make your reservation/i,
-  });
+  fireEvent.click(
+    screen.getByRole("button", {
+      name: /make your reservation/i,
+    })
+  );
 
-  expect(submitButton).toBeDisabled();
+  expect(
+    screen.getByText("Please select a reservation date.")
+  ).toBeInTheDocument();
+
+  expect(
+    screen.getByText("Please select an available time.")
+  ).toBeInTheDocument();
+
+  expect(
+    screen.getByText("Please select an occasion.")
+  ).toBeInTheDocument();
+
+  expect(
+    screen.getByRole("button", {
+      name: /make your reservation/i,
+    })
+  ).toHaveAttribute("aria-disabled", "true");
 });
 
-test("keeps the submit button disabled when the date is in the past", () => {
+test("keeps the form invalid when the selected date is in the past", () => {
   renderBookingForm();
 
-  const dateInput = screen.getByLabelText(/choose date/i);
-  const submitButton = screen.getByRole("button", {
-    name: /make your reservation/i,
+  fireEvent.change(screen.getByLabelText(/date/i), {
+    target: { value: getFutureDate(-1) },
   });
 
-  const pastDate = getFutureDate(-1);
-
-  fireEvent.change(dateInput, {
-    target: { value: pastDate },
+  fireEvent.change(screen.getByLabelText(/time/i), {
+    target: { value: "18:00" },
   });
 
-  expect(submitButton).toBeDisabled();
+  fireEvent.click(screen.getByLabelText(/birthday/i));
+
+  fireEvent.click(
+    screen.getByRole("button", {
+      name: /make your reservation/i,
+    })
+  );
+
+  expect(
+    screen.getByText("Choose today or a future date.")
+  ).toBeInTheDocument();
+
+  expect(
+    screen.getByRole("button", {
+      name: /make your reservation/i,
+    })
+  ).toHaveAttribute("aria-disabled", "true");
 });
 
-test("keeps the submit button disabled when the number of guests is invalid", () => {
+test("shows an error when the number of guests is invalid", () => {
   renderBookingForm();
 
-  const dateInput = screen.getByLabelText(/choose date/i);
-  const timeSelect = screen.getByLabelText(/choose time/i);
-  const guestsInput = screen.getByLabelText(/number of guests/i);
-  const submitButton = screen.getByRole("button", {
-    name: /make your reservation/i,
-  });
-
-  fireEvent.change(dateInput, {
+  fireEvent.change(screen.getByLabelText(/date/i), {
     target: { value: getFutureDate() },
   });
 
-  fireEvent.change(timeSelect, {
-    target: { value: "17:00" },
+  fireEvent.change(screen.getByLabelText(/time/i), {
+    target: { value: "18:00" },
   });
 
-  fireEvent.change(guestsInput, {
+  fireEvent.change(screen.getByLabelText(/guests/i), {
     target: { value: "11" },
   });
 
-  expect(submitButton).toBeDisabled();
+  fireEvent.click(screen.getByLabelText(/birthday/i));
+
+  fireEvent.click(
+    screen.getByRole("button", {
+      name: /make your reservation/i,
+    })
+  );
+
+  expect(
+    screen.getByText("Choose between 1 and 10 guests.")
+  ).toBeInTheDocument();
+
+  expect(
+    screen.getByRole("button", {
+      name: /make your reservation/i,
+    })
+  ).toHaveAttribute("aria-disabled", "true");
 });
 
-test("enables the submit button when all fields are valid", () => {
+test("enables the button when all fields are valid", () => {
   renderBookingForm();
 
-  const dateInput = screen.getByLabelText(/choose date/i);
-  const timeSelect = screen.getByLabelText(/choose time/i);
-  const guestsInput = screen.getByLabelText(/number of guests/i);
-  const occasionSelect = screen.getByLabelText(/occasion/i);
+  fillValidForm();
 
-  const submitButton = screen.getByRole("button", {
-    name: /make your reservation/i,
-  });
-
-  fireEvent.change(dateInput, {
-    target: { value: getFutureDate() },
-  });
-
-  fireEvent.change(timeSelect, {
-    target: { value: "18:00" },
-  });
-
-  fireEvent.change(guestsInput, {
-    target: { value: "4" },
-  });
-
-  fireEvent.change(occasionSelect, {
-    target: { value: "Anniversary" },
-  });
-
-  expect(submitButton).toBeEnabled();
+  expect(
+    screen.getByRole("button", {
+      name: /make your reservation/i,
+    })
+  ).toHaveAttribute("aria-disabled", "false");
 });
 
-test("submits the form data when all fields are valid", () => {
+test("calls dispatch when the reservation date changes", () => {
+  const { dispatch } = renderBookingForm();
+  const selectedDate = getFutureDate();
+
+  fireEvent.change(screen.getByLabelText(/date/i), {
+    target: { value: selectedDate },
+  });
+
+  expect(dispatch).toHaveBeenCalledWith({
+    type: "UPDATE_TIMES",
+    date: selectedDate,
+  });
+});
+
+test("submits valid booking data", () => {
   const { submitForm } = renderBookingForm();
 
-  fireEvent.change(screen.getByLabelText(/choose date/i), {
-    target: { value: getFutureDate() },
-  });
-
-  fireEvent.change(screen.getByLabelText(/choose time/i), {
-    target: { value: "18:00" },
-  });
-
-  fireEvent.change(screen.getByLabelText(/number of guests/i), {
-    target: { value: "4" },
-  });
-
-  fireEvent.change(screen.getByLabelText(/occasion/i), {
-    target: { value: "Anniversary" },
-  });
+  fillValidForm();
 
   fireEvent.click(
     screen.getByRole("button", {
@@ -167,4 +211,18 @@ test("submits the form data when all fields are valid", () => {
     guests: 4,
     occasion: "Anniversary",
   });
+
+  expect(submitForm).toHaveBeenCalledTimes(1);
+});
+
+test("does not submit invalid booking data", () => {
+  const { submitForm } = renderBookingForm();
+
+  fireEvent.click(
+    screen.getByRole("button", {
+      name: /make your reservation/i,
+    })
+  );
+
+  expect(submitForm).not.toHaveBeenCalled();
 });

@@ -15,13 +15,15 @@ export default function Main() {
 
   const navigate = useNavigate();
 
-  function submitForm(formData) {
-    const isSubmitted = window.submitAPI(formData);
+function submitForm(formData) {
+  const isSubmitted = window.submitAPI(formData);
 
-    if (isSubmitted) {
-      navigate("/confirmed");
-    }
+  if (isSubmitted) {
+    navigate("/confirmed", {
+      state: formData,
+    });
   }
+}
 
   return (
     <main>
